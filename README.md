@@ -12,3 +12,11 @@ que roteia.
 `/clientes/**` e `/lojas/**` aceitam até `RATE_LIMIT_LIMITE` requisições (padrão
 100) por IP a cada `RATE_LIMIT_JANELA` (padrão `1m`). Acima disso o gateway
 responde `429` até a próxima janela. A contagem fica em memória, por instância.
+
+## Logs de acesso e métricas
+
+Toda requisição a `/clientes/**` e `/lojas/**` (inclusive as barradas com
+`429`) gera uma linha de log com IP, método, path, serviço de destino, status e
+duração, e é medida no timer `gateway.requisicoes`, com as tags `servico`,
+`metodo` e `status`. As métricas ficam em `/actuator/metrics`, por exemplo
+`/actuator/metrics/gateway.requisicoes?tag=servico:loja-service`.
