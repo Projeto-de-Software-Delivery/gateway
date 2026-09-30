@@ -20,3 +20,10 @@ Toda requisição a `/clientes/**` e `/lojas/**` (inclusive as barradas com
 duração, e é medida no timer `gateway.requisicoes`, com as tags `servico`,
 `metodo` e `status`. As métricas ficam em `/actuator/metrics`, por exemplo
 `/actuator/metrics/gateway.requisicoes?tag=servico:loja-service`.
+
+## Documentação da API
+
+Com a aplicação rodando: Swagger UI em `/swagger-ui.html`, OpenAPI JSON em
+`/v3/api-docs`. Como o gateway só faz proxy, ele lista os prefixos que roteia
+(`/clientes/**`, `/lojas/**`) — as rotas de verdade estão documentadas no
+serviço de destino de cada uma.
