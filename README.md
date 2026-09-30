@@ -7,6 +7,23 @@ de loja, definidos em `gateway.routes.*` (`CLIENTE_SERVICE_URL`,
 Extraído do repo `backend` (KAN-59), onde vivia acoplado a um dos serviços
 que roteia.
 
+## Autenticação e autorização
+
+O gateway é um resource server OAuth2: `/clientes/**` e `/lojas/**` exigem
+`Authorization: Bearer <JWT>`, assinado em HS256 com `JWT_SECRET` (o mesmo
+segredo dos outros serviços, com pelo menos 32 caracteres) e com as claims
+`sub` e `role` (`cliente` | `loja` | `entregador`). Sem token, ou com token
+inválido/expirado, a resposta é `401`; com papel sem permissão, `403`.
+
+| Rota | Quem acessa |
+|------|-------------|
+| `/clientes/**` | `cliente` |
+| `GET /lojas/**` | `cliente`, `loja`, `entregador` |
+| demais métodos em `/lojas/**` | `loja` |
+
+O token é repassado no `Authorization` para o serviço de destino. `/actuator/**`,
+o Swagger UI e o `/v3/api-docs` continuam abertos.
+
 ## Rate limiting
 
 `/clientes/**` e `/lojas/**` aceitam até `RATE_LIMIT_LIMITE` requisições (padrão
