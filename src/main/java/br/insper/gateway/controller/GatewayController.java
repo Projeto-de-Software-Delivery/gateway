@@ -81,6 +81,10 @@ public class GatewayController {
 				.uri(baseUrl + path)
 				.body(body == null ? "" : body)
 				.retrieve()
+				// repassa o status do servico de destino (4xx/5xx inclusive) em vez de
+				// deixar o RestClient converter em excecao e virar 500 aqui no gateway
+				.onStatus(status -> true, (req, res) -> {
+				})
 				.toEntity(String.class);
 	}
 }
