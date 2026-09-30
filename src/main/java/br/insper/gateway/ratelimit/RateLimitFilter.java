@@ -1,68 +1,62 @@
 package br.insper.gateway.ratelimit;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import br.insper.gateway.config.RateLimitProperties;
-import br.insper.gateway.ratelimit.TokenBucket.Consumo;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Aplica o rate limiting às rotas roteadas pelo gateway, respondendo 429 quando
- * o cliente estoura o limite.
+ * Limita quantas requisições cada IP pode fazer por janela de tempo nas rotas
+ * do gateway. Passou do limite, responde 429 até a janela seguinte começar.
  */
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-	private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
+	private final int limite;
+	private final long janelaMillis;
 
-	private final RateLimiter rateLimiter;
-	private final RateLimitProperties properties;
+	// Quantas requisições cada IP já fez na janela atual.
+	private final Map<String, Integer> contagemPorIp = new ConcurrentHashMap<>();
+	private long inicioDaJanela = System.currentTimeMillis();
 
-	public RateLimitFilter(RateLimiter rateLimiter, RateLimitProperties properties) {
-		this.rateLimiter = rateLimiter;
-		this.properties = properties;
+	public RateLimitFilter(@Value("${gateway.rate-limit.limite:100}") int limite,
+			@Value("${gateway.rate-limit.janela:1m}") Duration janela) {
+		this.limite = limite;
+		this.janelaMillis = janela.toMillis();
 	}
 
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {
-		String path = request.getRequestURI().substring(request.getContextPath().length());
-		return !properties.habilitado() || !(path.startsWith("/clientes/") || path.startsWith("/lojas/"));
+		String path = request.getRequestURI();
+		return !path.startsWith("/clientes/") && !path.startsWith("/lojas/");
 	}
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
-		// Enquanto não houver autenticação (KAN-17), o cliente é identificado pelo IP de origem.
-		String cliente = request.getRemoteAddr();
-		Consumo consumo = rateLimiter.consumir(cliente);
-
-		response.setHeader("X-RateLimit-Limit", String.valueOf(rateLimiter.capacidade()));
-		response.setHeader("X-RateLimit-Remaining", String.valueOf(consumo.restantes()));
-
-		if (consumo.permitido()) {
-			chain.doFilter(request, response);
+		if (excedeuLimite(request.getRemoteAddr())) {
+			response.sendError(429, "Limite de requisições excedido");
 			return;
 		}
+		chain.doFilter(request, response);
+	}
 
-		long retryAfter = Math.max(1, TimeUnit.NANOSECONDS.toSeconds(consumo.esperaNanos() + 999_999_999));
-		log.warn("Rate limit excedido para {} em {} {}", cliente, request.getMethod(), request.getRequestURI());
-		response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-		response.setHeader("Retry-After", String.valueOf(retryAfter));
-		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-		response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-		response.getWriter().write("{\"erro\":\"Limite de requisições excedido. Tente novamente em "
-				+ retryAfter + " segundo(s).\"}");
+	private synchronized boolean excedeuLimite(String ip) {
+		long agora = System.currentTimeMillis();
+		if (agora - inicioDaJanela >= janelaMillis) {
+			contagemPorIp.clear();
+			inicioDaJanela = agora;
+		}
+		int requisicoes = contagemPorIp.merge(ip, 1, Integer::sum);
+		return requisicoes > limite;
 	}
 }
