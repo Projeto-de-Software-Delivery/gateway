@@ -1,6 +1,7 @@
 package br.insper.gateway.controller;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -79,6 +80,13 @@ public class GatewayController {
 
 		return restClient.method(method)
 				.uri(baseUrl + path)
+				.headers(h -> {
+					// Repassa o JWT para o serviço saber quem é o usuário.
+					String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
+					if (authorization != null) {
+						h.set(HttpHeaders.AUTHORIZATION, authorization);
+					}
+				})
 				.body(body == null ? "" : body)
 				.retrieve()
 				// repassa o status do servico de destino (4xx/5xx inclusive) em vez de
