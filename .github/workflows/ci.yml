@@ -69,4 +69,7 @@ jobs:
               -p 8080:8080 \
               -e CLIENTE_SERVICE_URL=http://delivery:8080 \
               -e LOJA_SERVICE_URL=http://delivery:8080 \
+              -e AUTH0_DOMAIN=${{ vars.AUTH0_DOMAIN }} \
+              -e AUTH0_AUDIENCE=${{ vars.AUTH0_AUDIENCE }} \
+              -e CORS_ALLOWED_ORIGINS=${{ vars.CORS_ALLOWED_ORIGINS }} \
               emilybrtt/gateway:${{ github.sha }}
