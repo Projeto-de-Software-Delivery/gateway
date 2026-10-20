@@ -1,7 +1,12 @@
 package br.insper.gateway.controller;
 
+import java.net.URI;
+import java.util.List;
+
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +22,9 @@ import jakarta.servlet.http.HttpServletRequest;
  */
 @RestController
 public class GatewayController {
+
+	private static final List<String> HEADERS_REPASSADOS = List.of(HttpHeaders.AUTHORIZATION,
+			HttpHeaders.CONTENT_TYPE, HttpHeaders.ACCEPT);
 
 	private final RestClient restClient;
 	private final RouteProperties routeProperties;
@@ -77,8 +85,14 @@ public class GatewayController {
 		String path = request.getRequestURI();
 		eventPublisher.publishEvent(new RequisicaoRoteadaEvent(this, servicoDestino, path));
 
-		return restClient.method(method)
-				.uri(baseUrl + path)
+		// getRequestURI/getQueryString ja vem codificados; URI.create evita que o
+		// RestClient codifique de novo
+		String query = request.getQueryString();
+		URI destino = URI.create(baseUrl + path + (query == null ? "" : "?" + query));
+
+		ResponseEntity<String> resposta = restClient.method(method)
+				.uri(destino)
+				.headers(headers -> copiarHeadersDaRequisicao(request, headers))
 				.body(body == null ? "" : body)
 				.retrieve()
 				// repassa o status do servico de destino (4xx/5xx inclusive) em vez de
@@ -86,5 +100,27 @@ public class GatewayController {
 				.onStatus(status -> true, (req, res) -> {
 				})
 				.toEntity(String.class);
+
+		// nao repassa os headers do destino: hop-by-hop como Transfer-Encoding e
+		// Connection geram resposta invalida para proxies (ex.: 502 na Vercel)
+		MediaType contentType = resposta.getHeaders().getContentType();
+		return ResponseEntity.status(resposta.getStatusCode())
+				.contentType(contentType == null ? MediaType.APPLICATION_JSON : contentType)
+				.body(resposta.getBody());
+	}
+
+	/**
+	 * Copia para a requisição de destino os headers da requisição original que o serviço precisa.
+	 *
+	 * @param request Requisição HTTP original.
+	 * @param headers Headers da requisição de destino.
+	 */
+	private void copiarHeadersDaRequisicao(HttpServletRequest request, HttpHeaders headers) {
+		for (String nome : HEADERS_REPASSADOS) {
+			String valor = request.getHeader(nome);
+			if (valor != null) {
+				headers.set(nome, valor);
+			}
+		}
 	}
 }
