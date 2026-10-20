@@ -68,8 +68,11 @@ public class AcessoFilter extends OncePerRequestFilter {
 		if (path.startsWith("/clientes/")) {
 			return "cliente-service";
 		}
-		if (path.startsWith("/lojas/")) {
+		if (path.startsWith("/lojas/") || path.startsWith("/produtos/") || path.startsWith("/pedidos/")) {
 			return "loja-service";
+		}
+		if (path.startsWith("/entregadores/")) {
+			return "entregador-service";
 		}
 		return null;
 	}

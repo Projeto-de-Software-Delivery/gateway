@@ -12,7 +12,7 @@ public class OpenApiConfig {
 	public OpenAPI gatewayOpenApi() {
 		return new OpenAPI().info(new Info()
 				.title("API Gateway")
-				.description("Roteia /clientes/** e /lojas/** para os serviços correspondentes. "
+				.description("Roteia /clientes/**, /lojas/**, /produtos/**, /pedidos/** e /entregadores/** para os serviços correspondentes. "
 						+ "As rotas reais expostas são as documentadas nos serviços de destino.")
 				.version("v1"));
 	}
