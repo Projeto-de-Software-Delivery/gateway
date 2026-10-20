@@ -71,6 +71,48 @@ public class GatewayController {
 	}
 
 	/**
+	 * Roteia uma requisição para o serviço de produtos, que fica no mesmo serviço das lojas.
+	 *
+	 * @param method  Método HTTP da requisição.
+	 * @param request Requisição HTTP.
+	 * @param body    Corpo da requisição.
+	 * @return ResponseEntity com a resposta da requisição.
+	 */
+	@RequestMapping("/produtos/**")
+	public ResponseEntity<String> rotearParaProduto(HttpMethod method, HttpServletRequest request,
+			@RequestBody(required = false) String body) {
+		return rotear(routeProperties.lojaServiceUrl(), "loja-service", method, request, body);
+	}
+
+	/**
+	 * Roteia uma requisição para o serviço de pedidos, que fica no mesmo serviço das lojas.
+	 *
+	 * @param method  Método HTTP da requisição.
+	 * @param request Requisição HTTP.
+	 * @param body    Corpo da requisição.
+	 * @return ResponseEntity com a resposta da requisição.
+	 */
+	@RequestMapping("/pedidos/**")
+	public ResponseEntity<String> rotearParaPedido(HttpMethod method, HttpServletRequest request,
+			@RequestBody(required = false) String body) {
+		return rotear(routeProperties.lojaServiceUrl(), "loja-service", method, request, body);
+	}
+
+	/**
+	 * Roteia uma requisição para o serviço de entregadores.
+	 *
+	 * @param method  Método HTTP da requisição.
+	 * @param request Requisição HTTP.
+	 * @param body    Corpo da requisição.
+	 * @return ResponseEntity com a resposta da requisição.
+	 */
+	@RequestMapping("/entregadores/**")
+	public ResponseEntity<String> rotearParaEntregador(HttpMethod method, HttpServletRequest request,
+			@RequestBody(required = false) String body) {
+		return rotear(routeProperties.entregadorServiceUrl(), "entregador-service", method, request, body);
+	}
+
+	/**
 	 * Encaminha a requisição para o serviço de destino e publica o evento de roteamento.
 	 *
 	 * @param baseUrl        URL base do serviço de destino.

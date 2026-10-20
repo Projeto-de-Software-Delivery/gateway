@@ -23,7 +23,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Exige um access token JWT do Auth0 nas rotas roteadas pelo gateway
- * ({@code /clientes/**}, {@code /lojas/**}). Demais endpoints (actuator,
+ * ({@code /clientes/**}, {@code /lojas/**}, {@code /produtos/**},
+ * {@code /pedidos/**}, {@code /entregadores/**}). Demais endpoints (actuator,
  * swagger) ficam liberados. pedidos-lojas e entregador não validam o token
  * de novo: o gateway é o único ponto de entrada do front-end.
  */
@@ -52,7 +53,8 @@ public class SecurityConfig implements WebMvcConfigurer {
 		http
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/actuator/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-						.requestMatchers("/clientes/**", "/lojas/**").authenticated()
+						.requestMatchers("/clientes/**", "/lojas/**", "/produtos/**", "/pedidos/**",
+								"/entregadores/**").authenticated()
 						.anyRequest().permitAll()
 				)
 				.csrf(AbstractHttpConfigurer::disable)

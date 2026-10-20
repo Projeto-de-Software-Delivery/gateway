@@ -40,7 +40,8 @@ class GatewayControllerTest {
 		downstream.start();
 		int porta = downstream.getAddress().getPort();
 
-		RouteProperties routeProperties = new RouteProperties("http://localhost:" + porta, "http://localhost:" + porta);
+		RouteProperties routeProperties = new RouteProperties("http://localhost:" + porta, "http://localhost:" + porta,
+				"http://localhost:" + porta);
 		ApplicationEventPublisher eventPublisher = evento -> {
 		};
 		controller = new GatewayController(routeProperties, eventPublisher);
