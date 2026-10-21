@@ -1,6 +1,7 @@
 package br.insper.gateway.controller;
 
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.util.List;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -8,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,7 +39,12 @@ public class GatewayController {
 	 * @param eventPublisher  Publicador de eventos.
 	 */
 	public GatewayController(RouteProperties routeProperties, ApplicationEventPublisher eventPublisher) {
-		this.restClient = RestClient.create();
+		// HTTP/1.1 fixo: por padrao o HttpClient do JDK tenta upgrade pra HTTP/2 (h2c) em http://,
+		// e o uvicorn do servico de entregador perde o corpo do POST/PUT/PATCH nesse upgrade
+		HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
+		this.restClient = RestClient.builder()
+				.requestFactory(new JdkClientHttpRequestFactory(httpClient))
+				.build();
 		this.routeProperties = routeProperties;
 		this.eventPublisher = eventPublisher;
 	}

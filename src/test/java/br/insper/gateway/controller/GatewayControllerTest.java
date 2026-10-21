@@ -21,6 +21,8 @@ class GatewayControllerTest {
 
 	private HttpServer downstream;
 	private GatewayController controller;
+	private volatile String upgradeRecebido;
+	private volatile String corpoRecebido;
 
 	@BeforeEach
 	void subirServicoFalso() throws IOException {
@@ -34,6 +36,14 @@ class GatewayControllerTest {
 		downstream.createContext("/clientes/2", exchange -> {
 			byte[] corpo = "{\"id\":2}".getBytes();
 			exchange.sendResponseHeaders(200, corpo.length);
+			exchange.getResponseBody().write(corpo);
+			exchange.close();
+		});
+		downstream.createContext("/entregadores", exchange -> {
+			upgradeRecebido = exchange.getRequestHeaders().getFirst("Upgrade");
+			corpoRecebido = new String(exchange.getRequestBody().readAllBytes());
+			byte[] corpo = "{\"id\":\"abc\"}".getBytes();
+			exchange.sendResponseHeaders(201, corpo.length);
 			exchange.getResponseBody().write(corpo);
 			exchange.close();
 		});
@@ -72,5 +82,19 @@ class GatewayControllerTest {
 
 		assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(resposta.getBody()).contains("\"id\":2");
+	}
+
+	@Test
+	void repassaPostComCorpoSemPedirUpgradeParaHttp2() {
+		MockHttpServletRequest request = new MockHttpServletRequest("POST", "/entregadores");
+		request.setRequestURI("/entregadores");
+		request.setContentType("application/json");
+		String corpo = "{\"nome\":\"Jose\",\"veiculo\":\"MOTO\"}";
+
+		ResponseEntity<String> resposta = controller.rotearParaEntregador(HttpMethod.POST, request, corpo);
+
+		assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		assertThat(upgradeRecebido).isNull();
+		assertThat(corpoRecebido).isEqualTo(corpo);
 	}
 }
