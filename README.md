@@ -29,3 +29,4 @@ Com a aplicação rodando: Swagger UI em `/swagger-ui.html`, OpenAPI JSON em
 (`/clientes/**`, `/lojas/**`, `/produtos/**`, `/pedidos/**`, `/entregadores/**`) — as rotas de verdade estão documentadas no
 serviço de destino de cada uma.
 
+
