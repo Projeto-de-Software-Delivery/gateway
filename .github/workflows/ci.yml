@@ -61,6 +61,10 @@ jobs:
             docker stop gateway || true
             docker rm --force gateway || true
 
+            # Remove imagens sem container (deploys antigos, tag = SHA). Sem isso o disco da
+            # EC2 enche e o pull falha com "no space left on device" (KAN-80).
+            docker image prune -af
+
             docker pull emilybrtt/gateway:${{ github.sha }}
 
             docker run -d \
